@@ -6,7 +6,7 @@ Console.WriteLine("   Interfactive (i)");
 Console.WriteLine("   Solver (s[:{Iterations}][:{StartWord}]:[{Dictionary}])");
 Console.WriteLine("      Iterations is the number of iterations (default: 10)");
 Console.WriteLine("      StartWord is the word to start solving with (default: CRANE)");
-Console.WriteLine("      Dictionary is the dictionary to solve against, either Complete or Solutios (default:Complete)");
+Console.WriteLine("      Dictionary is the dictionary to solve against, either Complete or Solutions (default:Complete)");
 Console.WriteLine("   Letter Occurrences (o)");
 
 var mode = Console.ReadLine();
