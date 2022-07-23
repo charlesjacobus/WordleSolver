@@ -9,10 +9,10 @@ namespace WordleLibrary
         private List<Word> _words;
         private Word _solution;
 
-        private Game()
+        private Game(Word? solution = null)
         {
             _words = new List<Word>();
-            _solution = GetSolution();
+            _solution = solution ?? GetSolution();
         }
 
         public IEnumerator<Word> GetEnumerator()
@@ -49,9 +49,9 @@ namespace WordleLibrary
 
         public IEnumerable<Word> Words => _words;
 
-        public static Game Create()
+        public static Game Create(Word? solution = null)
         {
-            return new Game();
+            return new Game(solution);
         }
 
         protected virtual Word GetSolution()

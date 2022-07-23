@@ -58,7 +58,7 @@
                 var match = word.Letters[remaining.Position - 1];
                 if (remaining.Value != match.Value)
                 {
-                    var occurrences = WordsLibrary.Instance.LetterOccurrences.First(o => o.Letter == match.Value).Count;
+                    var occurrences = WordsLibrary.Instance.LetterPositionOccurrences.First(o => o.Letter == match.Value && o.Position == match.Position).Count;
 
                     wordCounts.Add(word, occurrences);
                 }
@@ -184,8 +184,9 @@
             {
                 uint rank = 0;
                 word.Letters.DistinctBy(l => l.Value).ToList().ForEach(l => {
-                    var occurrences = WordsLibrary.Instance.LetterOccurrences.FirstOrDefault(l => l.Letter == l.Letter);
-                    rank += occurrences != null ? occurrences.Count : 0;
+                    //var occurrences = WordsLibrary.Instance.LetterOccurrences.FirstOrDefault(l => l.Letter == l.Letter);
+                    var occurrences = (uint)WordsLibrary.Instance.LetterPositionOccurrences.Where(o => o.Letter == l.Value).Sum(o => o.Count);
+                    rank += occurrences;
                 });
 
                 dictionary.Add(word, rank);

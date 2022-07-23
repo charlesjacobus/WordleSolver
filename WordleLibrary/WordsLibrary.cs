@@ -7,7 +7,7 @@ namespace WordleLibrary
         private List<Word> _complete;
         private List<Word> _solutions;
 
-        private LetterOccurrences _letterOccurrences;
+        private LetterPositionOccurrences _letterPositionOccurrences;
 
         private static WordsLibrary? _instance;
         private Random _random;
@@ -22,7 +22,7 @@ namespace WordleLibrary
         {
             _random = new Random();
 
-            _letterOccurrences = LetterOccurrences.Create();
+            _letterPositionOccurrences = LetterPositionOccurrences.Create();
 
             _complete = LoadEmbeddedResource(WordleDictionary.Complete);
             _solutions = LoadEmbeddedResource(WordleDictionary.Solutions);
@@ -30,7 +30,7 @@ namespace WordleLibrary
 
         public IEnumerable<Word> Complete => _complete;
 
-        public LetterOccurrences LetterOccurrences => _letterOccurrences;
+        public LetterPositionOccurrences LetterPositionOccurrences => _letterPositionOccurrences;
 
         public IEnumerable<Word> Solutions => _solutions;
 
@@ -81,7 +81,7 @@ namespace WordleLibrary
                             words.Add(w);
 
                             w.Letters.ToList().ForEach(l => {
-                                _letterOccurrences.AddOne(l);
+                                _letterPositionOccurrences.AddOne(l);
                             });
                         }
                     }

@@ -7,6 +7,7 @@ Console.WriteLine("   Solver (s[:{Iterations}][:{StartWord}]:[{Dictionary}])");
 Console.WriteLine("      Iterations is the number of iterations (default: 10)");
 Console.WriteLine("      StartWord is the word to start solving with (default: CRANE)");
 Console.WriteLine("      Dictionary is the dictionary to solve against, either Complete or Solutions (default:Complete)");
+Console.WriteLine("   Solve for all solution words (a)");
 Console.WriteLine("   Letter Occurrences (o)");
 
 var mode = Console.ReadLine();
@@ -18,10 +19,14 @@ else if (!string.IsNullOrWhiteSpace(mode) && (mode.Equals("i", StringComparison.
 {
     ModeInteractive();
 }
+else if (!string.IsNullOrWhiteSpace(mode) && (mode.Equals("a", StringComparison.OrdinalIgnoreCase)))
+{
+    ModeSolveAll();
+}
 else
 {
     int iterations = 10;
-    string startWord = "cheat";
+    string startWord = "crane";
     WordsLibrary.WordleDictionary dictionary = WordsLibrary.WordleDictionary.Complete;
     if (mode != null && mode.IndexOf(":") != -1)
     {
@@ -33,7 +38,15 @@ else
         }
         if (modeParts.Length > 2)
         {
-            startWord = modeParts.ElementAt(2);
+            var w = Word.Create(modeParts.ElementAt(2));
+            if (w == null || !w.IsValid())
+            {
+                Console.WriteLine($"Start word not recognized; using {startWord}");
+            }
+            else
+            {
+                startWord = w.ToString();
+            }
         }
         if (modeParts.Length > 3)
         {
@@ -53,6 +66,8 @@ Console.ReadLine();
 
 static void ModeInteractive()
 {
+    Console.WriteLine("Enter a start word to begin a game");
+
     Game:
     var game = Game.Create();
     // Console.WriteLine($"Hint: {game.Solution}");
@@ -106,14 +121,40 @@ static void ModeInteractive()
 
 static void ModeOccurrences()
 {
+    Console.WriteLine();
     Console.WriteLine("The occurrences of each letter in the Wordle dictionaries");
-    WordsLibrary.Instance
-        .LetterOccurrences
-        .OrderByDescending(o => o.Count)
-        .ToList()
-        .ForEach(o => {
-            Console.WriteLine($"{o.Letter}: {o.Count.ToString("N0")}");
-        });
+    Console.WriteLine(WordsLibrary.Instance.LetterPositionOccurrences.ToCsv());
+}
+
+static void ModeSolveAll()
+{
+    var solver = Solver.Create();
+    var results = GamePlayResults.Create();
+
+    foreach (var word in WordsLibrary.Instance.Solutions)
+    {
+        var game = Game.Create();
+        while (!game.IsComplete())
+        {
+            var guess = game.Words.Count().Equals(0) ? word.ToString() : solver.SolveOne(game)?.ToString();
+            game.Guess(guess);
+
+            if (game.IsSolved())
+            {
+                break;
+            }
+        }
+
+        results.AddGame(game);
+        Console.WriteLine($"{game.Words.First()}\t{game.IsSolved()} ({game.Words.Count()})");
+    }
+
+    Console.WriteLine();
+    var group = results.Games.GroupBy(g => g.Words.Count()).Where(g => g.Key > 1).OrderBy(g => g.Key).First();
+    Console.WriteLine($"Solved in {group.Key}");
+    group.ToList().ForEach(g => {
+        Console.WriteLine(g.Words.First());
+    });
 }
 
 static void ModeSolver(int iterations, string startWord, WordsLibrary.WordleDictionary dictionary)
