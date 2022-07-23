@@ -55,7 +55,7 @@ static void ModeInteractive()
 {
     Game:
     var game = Game.Create();
-    Console.WriteLine($"Hint: {game.Solution}");
+    // Console.WriteLine($"Hint: {game.Solution}");
 
     while (!game.IsComplete())
     {
@@ -67,7 +67,7 @@ static void ModeInteractive()
             var result = game.Guess(word);
             if (result?.Word == null)
             {
-                Console.WriteLine("Invalid value");
+                Console.WriteLine("Not recognized");
             }
             else
             {
@@ -79,7 +79,7 @@ static void ModeInteractive()
                 }
                 else if (game.IsComplete())
                 {
-                    Console.WriteLine($"You loose; the answer was {result.Solution}");
+                    Console.WriteLine($"You lose; the answer was {result.Solution}");
                     break;
                 }
             }

@@ -3,10 +3,13 @@
     public class Solver
     {
         private IEnumerable<Word> _dictionary;
+        private WordsLibrary.WordleDictionary _source;
 
-        public Solver(WordsLibrary.WordleDictionary dictionary)
+        public Solver(WordsLibrary.WordleDictionary source)
         {
-            var words = dictionary == WordsLibrary.WordleDictionary.Solutions 
+            _source = source;
+
+            var words = _source == WordsLibrary.WordleDictionary.Solutions 
                 ? WordsLibrary.Instance.Solutions 
                 : WordsLibrary.Instance.Complete;
             
@@ -35,28 +38,40 @@
             matches = Filter(game, matches, FilterOneRemainingLetterInWord);
 
             return !matches.Any() ? 
-                Word.Create(WordsLibrary.Instance.Random(WordsLibrary.WordleDictionary.Solutions)) : 
+                Word.Create(WordsLibrary.Instance.Random(_source)) : 
                 matches.First();
         }
 
-        protected virtual IEnumerable<Word> FilterWordsWithAllMatchingLetters(Game game, IEnumerable<Word> words)
+        protected virtual IEnumerable<Word> FilterOneRemainingLetterInWord(Game game, IEnumerable<Word> words)
         {
-            // Filter words that don't have all matching letters, whether in the correct position or not
+            var previous = game.Words.LastOrDefault();
+            if (previous == null || previous.Letters.Count(l => l.Correctness == Letter.CorrectnessLevel.InWordCorrectPosition) != Word.LetterLimit - 1)
+            {
+                return words;
+            }
 
-            var letters = game.Words
-                .SelectMany(w => w.Letters)
-                .Where(l => l.Correctness == Letter.CorrectnessLevel.InWordCorrectPosition || l.Correctness == Letter.CorrectnessLevel.InWordDifferentPosition)
-                .Distinct();
+            var remaining = previous.Letters.First(l => l.Correctness != Letter.CorrectnessLevel.InWordCorrectPosition);
 
-            var matches = new List<Word>();
-
+            var wordCounts = new Dictionary<Word, uint>();
             foreach (var word in words)
             {
-                if (word.HasAllLetters(letters))
+                var match = word.Letters[remaining.Position - 1];
+                if (remaining.Value != match.Value)
                 {
-                    matches.Add(word);
+                    var occurrences = WordsLibrary.Instance.LetterOccurrences.First(o => o.Letter == match.Value).Count;
+
+                    wordCounts.Add(word, occurrences);
                 }
             }
+
+            var matches = wordCounts.OrderByDescending(w => w.Value).Select(w => w.Key);
+
+            return matches;
+        }
+
+        protected virtual IEnumerable<Word> FilterPreviouslyPlayedWords(Game game, IEnumerable<Word> words)
+        {
+            var matches = words.Where(m => !game.Words.Select(w => w.ToString()).Contains(m.ToString(), StringComparer.OrdinalIgnoreCase)).ToList();
 
             return matches;
         }
@@ -83,46 +98,20 @@
             return matches;
         }
 
-        protected virtual IEnumerable<Word> FilterOneRemainingLetterInWord(Game game, IEnumerable<Word> words)
+        protected virtual IEnumerable<Word> FilterWordsWithAllMatchingLetters(Game game, IEnumerable<Word> words)
         {
-            var previous = game.Words.LastOrDefault();
-            if (previous == null || previous.Letters.Count(l => l.Correctness == Letter.CorrectnessLevel.InWordCorrectPosition) != Word.LetterLimit - 1)
-            {
-                return words;
-            }
+            // Filter words that don't have all matching letters, whether in the correct position or not
 
-            var remaining = previous.Letters.First(l => l.Correctness != Letter.CorrectnessLevel.InWordCorrectPosition);
-
-            var wordCounts = new Dictionary<Word, uint>();
-            foreach (var word in words)
-            {
-                var match = word.Letters[remaining.Position - 1];
-                if (remaining.Value != match.Value)
-                {
-                    var occurrences = WordsLibrary.Instance.LetterOccurrences.First(o => o.Letter == match.Value).Count;
-                    wordCounts.Add(word, occurrences);
-                }
-            }
-
-            var matches = wordCounts.OrderByDescending(w => w.Value).Select(w => w.Key);
-
-            return matches;
-        }
-
-        protected virtual IEnumerable<Word> FilterWordsWithoutAnyMatchingLettersInDifferentPositions(Game game, IEnumerable<Word> words)
-        {
-            // Filter words with letters previously played and marked as "in word different position" where the word includes one or more of those misplaced letters in the same position
-
-            var misplaced = game.Words
+            var letters = game.Words
                 .SelectMany(w => w.Letters)
-                .Where(l => l.Correctness == Letter.CorrectnessLevel.InWordDifferentPosition)
+                .Where(l => l.Correctness == Letter.CorrectnessLevel.InWordCorrectPosition || l.Correctness == Letter.CorrectnessLevel.InWordDifferentPosition)
                 .Distinct();
 
             var matches = new List<Word>();
 
             foreach (var word in words)
             {
-                if (!word.HasAtLeastOneLetterInSamePosition(misplaced))
+                if (word.HasAllLetters(letters))
                 {
                     matches.Add(word);
                 }
@@ -161,9 +150,24 @@
             return matches;
         }
 
-        protected virtual IEnumerable<Word> FilterPreviouslyPlayedWords(Game game, IEnumerable<Word> words)
+        protected virtual IEnumerable<Word> FilterWordsWithoutAnyMatchingLettersInDifferentPositions(Game game, IEnumerable<Word> words)
         {
-            var matches = words.Where(m => !game.Words.Select(w => w.ToString()).Contains(m.ToString(), StringComparer.OrdinalIgnoreCase)).ToList();
+            // Filter words with letters previously played and marked as "in word different position" where the word includes one or more of those misplaced letters in the same position
+
+            var misplaced = game.Words
+                .SelectMany(w => w.Letters)
+                .Where(l => l.Correctness == Letter.CorrectnessLevel.InWordDifferentPosition)
+                .Distinct();
+
+            var matches = new List<Word>();
+
+            foreach (var word in words)
+            {
+                if (!word.HasAtLeastOneLetterInSamePosition(misplaced))
+                {
+                    matches.Add(word);
+                }
+            }
 
             return matches;
         }
