@@ -30,6 +30,8 @@
 
             // It's pretty important that these filters be applied in order
             var matches = Enumerable.Empty<Word>();
+            matches = Filter(game, matches, FilterNoop);
+            matches = Filter(game, matches, FilterBurnWord);
             matches = Filter(game, matches, FilterWordsWithLettersInCorrectPosition);
             matches = Filter(game, matches, FilterWordsWithoutAnyMatchingLettersInDifferentPositions);
             matches = Filter(game, matches, FilterWordsWithAllMatchingLetters);
@@ -40,6 +42,48 @@
             return !matches.Any() ? 
                 Word.Create(WordsLibrary.Instance.Random(_source)) : 
                 matches.First();
+        }
+
+        protected virtual IEnumerable<Word> FilterBurnWord(Game game, IEnumerable<Word> words)
+        {
+            // If two or three words have been played and there are three known letters and no known letters in the wrong position, burn a word
+            // The burn word is the first (previously ranked) word that has no previously played letters, to tease out possible matching letters 
+
+            var wordCount = game.Words.Count();
+            if (!(wordCount == 2 || wordCount == 3))
+            {
+                return words;
+            }
+
+            var previous = game.Words.Last();
+            var letters = previous.Letters
+                .Where(l => l.Correctness == Letter.CorrectnessLevel.InWordCorrectPosition || l.Correctness == Letter.CorrectnessLevel.InWordDifferentPosition)
+                .DistinctBy(l => new { l.Value, l.Position });
+
+            if (!(letters.Count(l => l.Correctness == Letter.CorrectnessLevel.InWordCorrectPosition) == 3
+                 &&
+                 !letters.Any(l => l.Correctness == Letter.CorrectnessLevel.InWordDifferentPosition)))
+            {
+                return words;
+            }
+
+            var matches = new List<Word>();
+
+            var previouslyPlayedLetters = game.GetPreviouslyPlayedLetters();
+            foreach (var word in words)
+            {
+                if (!word.Letters.Select(l => l.Value).Intersect(previouslyPlayedLetters.Select(l => l.Value)).Any())
+                {
+                    return new List<Word> { word };
+                }
+            }
+
+            return words;
+        }
+
+        protected virtual IEnumerable<Word> FilterNoop(Game game, IEnumerable<Word> words)
+        {
+            return _dictionary;
         }
 
         protected virtual IEnumerable<Word> FilterOneRemainingLetterInWord(Game game, IEnumerable<Word> words)
@@ -129,7 +173,7 @@
                 .Where(l => l.Correctness == Letter.CorrectnessLevel.InWordCorrectPosition);
 
             var matches = new List<Word>();
-            foreach (var word in _dictionary)
+            foreach (var word in words)
             {
                 var match = true;
                 foreach (var c in correct)
@@ -184,7 +228,6 @@
             {
                 uint rank = 0;
                 word.Letters.DistinctBy(l => l.Value).ToList().ForEach(l => {
-                    //var occurrences = WordsLibrary.Instance.LetterOccurrences.FirstOrDefault(l => l.Letter == l.Letter);
                     var occurrences = (uint)WordsLibrary.Instance.LetterPositionOccurrences.Where(o => o.Letter == l.Value).Sum(o => o.Count);
                     rank += occurrences;
                 });

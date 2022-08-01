@@ -25,6 +25,14 @@ namespace WordleLibrary
             return ((IEnumerable)_words).GetEnumerator();
         }
 
+        public IEnumerable<Letter> GetPreviouslyPlayedLetters()
+        {
+            return Words
+                .SelectMany(w => w.Letters)
+                .DistinctBy(l => l.Value)
+                .OrderBy(l => l.Value);
+        }
+
         public GuessResult? Guess(string? word)
         {
             if (string.IsNullOrWhiteSpace(word))

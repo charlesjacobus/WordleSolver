@@ -150,11 +150,9 @@ static void ModeSolveAll()
     }
 
     Console.WriteLine();
-    var group = results.Games.GroupBy(g => g.Words.Count()).Where(g => g.Key > 1).OrderBy(g => g.Key).First();
-    Console.WriteLine($"Solved in {group.Key}");
-    group.ToList().ForEach(g => {
-        Console.WriteLine(g.Words.First());
-    });
+    var group = results.Games.Where(g => g.IsSolved()).GroupBy(g => g.Words.Count()).Where(g => g.Key > 1).OrderBy(g => g.Key).ToList();
+    group.ForEach(item => { Console.WriteLine($"Solved in {item.Key}: {item.Count()}"); });
+    Console.WriteLine($"Not solved: {results.Games.Count(g => !g.IsSolved())}");
 }
 
 static void ModeSolver(int iterations, string startWord, WordsLibrary.WordleDictionary dictionary)
