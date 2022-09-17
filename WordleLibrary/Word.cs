@@ -25,7 +25,7 @@
 
         public bool HasAllLetters(IEnumerable<Letter> letters)
         {
-            foreach (var letter in letters)
+            foreach (var letter in letters ?? Enumerable.Empty<Letter>())
             {
                 if (LetterPosition(letter) == null)
                 {
@@ -38,7 +38,7 @@
 
         public bool HasAnyLetter(IEnumerable<Letter> letters)
         {
-            foreach (var letter in letters)
+            foreach (var letter in letters ?? Enumerable.Empty<Letter>())
             {
                 if (LetterPosition(letter) != null)
                 {
@@ -49,9 +49,35 @@
             return false;
         }
 
+        public bool HasAllLettersInDifferentPosition(IEnumerable<Letter> letters)
+        {
+            foreach (var l in letters ?? Enumerable.Empty<Letter>())
+            {
+                if (!Letters.Any(x => x.Value == l.Value && x.Position != l.Position))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public bool HasAllLettersInSamePosition(IEnumerable<Letter> letters)
+        {
+            foreach (var l in letters ?? Enumerable.Empty<Letter>())
+            {
+                if (!MatchesOn(l.Value, l.Position))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public bool HasAtLeastOneLetterInSamePosition(IEnumerable<Letter> letters)
         {
-            foreach (var letter in letters)
+            foreach (var letter in letters ?? Enumerable.Empty<Letter>())
             {
                 var l = Letters.ElementAt((int)letter.Position - 1);
                 if (l != null && l.Value == letter.Value)
@@ -122,7 +148,6 @@
         {
             ArgumentNullException.ThrowIfNull(nameof(word));
             ArgumentNullException.ThrowIfNull(nameof(solution));
-
 
             for (int i = 0; i < word.Letters.Length; i++)
             {

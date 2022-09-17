@@ -1,6 +1,83 @@
 ﻿namespace WordleLibrary
 {
+    public interface ISolver
+    {
+        public Word? SolveOne(Game game);
+    }
+
+    public class SimpleSolver
+        : ISolver
+    {
+        private IEnumerable<Word> _dictionary;
+        private WordsLibrary.WordleDictionary _source;
+
+        public SimpleSolver(WordsLibrary.WordleDictionary source)
+        {
+            _source = source;
+
+            var words = _source == WordsLibrary.WordleDictionary.Solutions
+                ? WordsLibrary.Instance.Solutions
+                : WordsLibrary.Instance.Complete;
+
+            _dictionary = InitializeDictionary(words);
+        }
+
+        public Word? SolveOne(Game game)
+        {
+            if (game?.Words == null || !game.Words.Any())
+            {
+                return null;
+            }
+
+            if (game.IsSolved())
+            {
+                return game.Words.Last();
+            }
+
+            var played = game.Words.SelectMany(w => w.Letters);
+
+            var matches = _dictionary
+                .Where(d => d.HasAllLettersInSamePosition(played.Where(l => l.Correctness == Letter.CorrectnessLevel.InWordCorrectPosition)))
+                .Where(d => d.HasAllLettersInDifferentPosition(played.Where(l => l.Correctness == Letter.CorrectnessLevel.InWordDifferentPosition)))
+                .Where(d => !d.HasAnyLetter(played.Where(l => l.Correctness == Letter.CorrectnessLevel.NotInWord)));
+
+            return !matches.Any() ?
+                Word.Create(WordsLibrary.Instance.Random(_source)) :
+                matches.First();
+        }
+
+        protected virtual IEnumerable<Word> InitializeDictionary(IEnumerable<Word> words)
+        {
+            if (words == null)
+            {
+                return Enumerable.Empty<Word>();
+            }
+
+            var dictionary = new Dictionary<Word, uint>();
+            foreach (var word in words)
+            {
+                uint rank = 0;
+                word.Letters.DistinctBy(l => l.Value).ToList().ForEach(l => {
+                    var occurrences = (uint)WordsLibrary.Instance.LetterPositionOccurrences.Where(o => o.Letter == l.Value).Sum(o => o.Count);
+                    rank += occurrences;
+                });
+
+                dictionary.Add(word, rank);
+            }
+
+            var sorted = dictionary.OrderByDescending(w => w.Value).Select(w => w.Key);
+
+            return sorted;
+        }
+
+        public static SimpleSolver Create(WordsLibrary.WordleDictionary dictionary = WordsLibrary.WordleDictionary.Complete)
+        {
+            return new SimpleSolver(dictionary);
+        }
+    }
+
     public class Solver
+        : ISolver
     {
         private IEnumerable<Word> _dictionary;
         private WordsLibrary.WordleDictionary _source;
@@ -31,7 +108,7 @@
             // It's pretty important that these filters be applied in order
             var matches = Enumerable.Empty<Word>();
             matches = Filter(game, matches, FilterNoop);
-            matches = Filter(game, matches, FilterBurnWord);
+            // matches = Filter(game, matches, FilterBurnWord);
             matches = Filter(game, matches, FilterWordsWithLettersInCorrectPosition);
             matches = Filter(game, matches, FilterWordsWithoutAnyMatchingLettersInDifferentPositions);
             matches = Filter(game, matches, FilterWordsWithAllMatchingLetters);
@@ -175,17 +252,7 @@
             var matches = new List<Word>();
             foreach (var word in words)
             {
-                var match = true;
-                foreach (var c in correct)
-                {
-                    if (!word.MatchesOn(c.Value, c.Position))
-                    {
-                        match = false;
-                        break;
-                    }
-                }
-
-                if (match)
+                if (word.HasAllLettersInSamePosition(correct))
                 {
                     matches.Add(word);
                 }
